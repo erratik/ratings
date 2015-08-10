@@ -1,7 +1,7 @@
 tv ratings web scraper
 ================
 
-Simple web scraper to get information from http://www.mediaite.com/'s rating pages
+Simple web scraper to get information from http://www.mediaite.com/ rating pages
 
 Just putting a page number to start going through a page to find all the links to ratings pages, and writing them to JSON file with a {'UTCDATE': 'URL'} format.
 
