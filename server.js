@@ -8,7 +8,7 @@ var jsonfile = require('jsonfile');
 var util = require('util');
  
 
-app.get('/', function(req, res){
+app.get('/getlinks', function(req, res){
 	var urls = {};
 
 	var urlFile = 'urls.json';
@@ -18,10 +18,10 @@ app.get('/', function(req, res){
 	});
 
 	var start = 19;
-	//for (var i = start; i > 0; i--) {
-		// console.log(i);
+	for (var i = start; i > 0; i--) {
+		console.log(i);
 
-		url = 'http://www.mediaite.com/tag/cable-news-ratings/page/20/';
+		url = 'http://www.mediaite.com/tag/cable-news-ratings/page/'+i+'/';
 		 
 		request(url, function(error, response, html){
 			if(!error){
@@ -49,14 +49,16 @@ app.get('/', function(req, res){
 			// fs.writeFile('daypage.json', JSON.stringify(json, null, 4), function(err){
 			fs.writeFile('urls.json', JSON.stringify(urls, null, 4), function(err){
 	        	console.log('File successfully written! - Check your project directory for the output.json file');
-	        })
+	        });
 
-	        // res.send('Check your console!')
-	        res.send(urls);
+
 		});
 
+        if (i == 1) { 
+	        res.send(urls);
+	    }
 
-	//};
+	};
 })
 
 app.listen('8081')
