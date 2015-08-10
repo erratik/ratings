@@ -9,6 +9,7 @@
     "express": "latest",
     "jsonfile": "^2.2.1",
     "moment": "^2.10.6",
+    "morgan": "^1.6.1",
     "request": "latest",
     "util": "^0.10.3"
   }
