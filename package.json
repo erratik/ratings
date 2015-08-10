@@ -1,10 +1,11 @@
 {
-  "name": "node-web-scrape",
-  "version": "0.0.1",
-  "description": "Scrape le web.",
+  "name": "node-mediaite-ratings",
+  "version": "0.0.5",
+  "description": "fetch ratings from mediaite.com and store the data for later use",
   "main": "server.js",
-  "author": "Scotch",
+  "author": "tayana jacqes : based off the scotch.io",
   "dependencies": {
+    "body-parser": "^1.13.3",
     "cheerio": "latest",
     "express": "latest",
     "jsonfile": "^2.2.1",
