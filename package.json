@@ -1,6 +1,6 @@
 {
   "name": "node-mediaite-ratings",
-  "version": "0.0.5",
+  "version": "0.8.10",
   "description": "fetch ratings from mediaite.com and store the data for later use",
   "main": "server.js",
   "author": "tayana jacqes : based off the scotch.io",
