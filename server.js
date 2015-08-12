@@ -9,21 +9,20 @@ var util = require('util');
 var morgan = require('morgan');             // log requests to the console (express4)
 var bodyParser = require('body-parser');    // pull information from HTML POST (express4)
 
-	app.use('/bower_components', express.static(__dirname + '/bower_components'));                                         // log every request to the console
+app.use(morgan('dev'));
 
-	app.use(morgan('dev'));
+app.use(express.static(__dirname + '/app'));  // set the static files location /app/img will be /img for users
+app.use('/bower_components', express.static(__dirname + '/bower_components'));
 
-
-var urls = {}, dates;   
-	var ratings = [];
+var urls = {}, 
+	dates,
+	ratings = [];
 
 jsonfile.readFile('urls.json', function(err, obj) {
     urls = obj;
 	dates = Object.keys(obj);
 
 	for (var i = 0; i < dates.length; i++) {
-		// urls
-		// console.log(dates[i]);
 		var date = dates[i];
 		(function(date){
 
@@ -31,8 +30,7 @@ jsonfile.readFile('urls.json', function(err, obj) {
 				if (err) {
 					// console.log('no ratings files yet');
 				} else {
-					// console.log(date);
-					// console.log(obj);
+
 					var ratingsObj = {};
 					ratingsObj[date] = obj;
 				    ratings.push(ratingsObj);
@@ -40,11 +38,16 @@ jsonfile.readFile('urls.json', function(err, obj) {
 			});
 		})(date);
 	}
-
 });
 
-app
-	.get('/ratings/get/:start/:count', function(req, res) {
+// application -------------------------------------------------------------
+app.get('/', function(req, res) {
+    res.sendfile('/app/settings.html'); // load the single view file (angular will handle the page changes on the front-end)
+});
+
+app.get('/api/ratings', function(req, res) {
+	res.send(ratings);
+}).get('/ratings/get/:start/:count', function(req, res) {
 
 		console.log(" ");
 		console.log('ratings count -> '+ratings.length);
@@ -109,103 +112,97 @@ app
 			})(range, i);
 
 		}
+}).get('/links/:start', function(req, res) {
+    var start = req.params.start;
+    for (var i = start; i > 0; i--) {
+        // console.log(i);
+        url = 'http://www.mediaite.com/tag/cable-news-ratings/page/' + i + '/';
+        request(url, function(error, response, html) {
+            if (!error) {
+                var $ = cheerio.load(html);
+                var title, release, rating;
+                $('.posts .post0').filter(function() {
+                    var data = $(this);
+                    date = data.find('.dateline').text().split('\n');
+                    var str = date[2];
+                    var result = str.replace(/\W+([0-9A-Za-z]+)/g, '$1|');
+                    var url = $(this).find('a').attr('href');
+                    if (url.indexOf('cable-ratings') != -1) {
+                        urls[moment(result, "MMMM|Do|YYYY|").format('X')] = url;
+                    }
+                });
+            }
+            fs.writeFile('urls.json', JSON.stringify(urls, null, 4), function(err) {
+                // console.log('File successfully written! - Check your project directory for the output.json file');
+            });
+        });
+        if (i == 1) {
+            jsonfile.readFile(urlFile, function(err, obj) {
+                urls = obj;
+                res.send(urls);
+            });
+        }
+    };
+}).get('/ratings/:date/:networks', function(req, res) {
+    request(urls[req.params.date], function(error, response, html) {
+        if (!error) {
+            var $ = cheerio.load(html);
 
-	})
-	.get('/links/:start', function(req, res) {
-	    var start = req.params.start;
-	    for (var i = start; i > 0; i--) {
-	        // console.log(i);
-	        url = 'http://www.mediaite.com/tag/cable-news-ratings/page/' + i + '/';
-	        request(url, function(error, response, html) {
-	            if (!error) {
-	                var $ = cheerio.load(html);
-	                var title, release, rating;
-	                $('.posts .post0').filter(function() {
-	                    var data = $(this);
-	                    date = data.find('.dateline').text().split('\n');
-	                    var str = date[2];
-	                    var result = str.replace(/\W+([0-9A-Za-z]+)/g, '$1|');
-	                    var url = $(this).find('a').attr('href');
-	                    if (url.indexOf('cable-ratings') != -1) {
-	                        urls[moment(result, "MMMM|Do|YYYY|").format('X')] = url;
-	                    }
-	                });
-	            }
-	            fs.writeFile('urls.json', JSON.stringify(urls, null, 4), function(err) {
-	                // console.log('File successfully written! - Check your project directory for the output.json file');
-	            });
-	        });
-	        if (i == 1) {
-	            jsonfile.readFile(urlFile, function(err, obj) {
-	                // console.dir(obj)
-	                urls = obj;
-	                res.send(urls);
-	            });
-	        }
-	    };
-	})
-	.get('/ratings/:date/:networks', function(req, res) {
-	    request(urls[req.params.date], function(error, response, html) {
-	        if (!error) {
-	            var $ = cheerio.load(html);
+            $('table.ratings').first().filter(function() {
+                var $table = $(this);
 
-	            $('table.ratings').first().filter(function() {
-	                var $table = $(this);
+					// var networks = {};
+                // if (req.params.networks != 'all') {
+                // 	networks = req.params.networks.split(',');
+                // 	console.log(networks);
+                // }
 
-  					// var networks = {};
-	                // if (req.params.networks != 'all') {
-	                // 	networks = req.params.networks.split(',');
-	                // 	console.log(networks);
-	                // }
-
-	                var network_classes = [''];
-	                var theseRatings = {};
-	                $table.find('.table-header:not(:empty)').filter(function(){
-	                	var nameStr = $(this).find('img').attr('src').split('logo-')[1];
-	                	var namespace = nameStr.split('.')[0];
-	                	// console.log(namespace);
-	                	network_classes.push(namespace);
-	                	theseRatings[namespace] = [];
-	                });
+                var network_classes = [''];
+                var theseRatings = {};
+                $table.find('.table-header:not(:empty)').filter(function(){
+                	var nameStr = $(this).find('img').attr('src').split('logo-')[1];
+                	var namespace = nameStr.split('.')[0];
+                	// console.log(namespace);
+                	network_classes.push(namespace);
+                	theseRatings[namespace] = [];
+                });
 
 
-	                $table.find('tr').filter(function(index){
-	                	var $row = $(this);
-	                	$row.find('td').each(function(idx){
-	                		$(this).attr('data-network', network_classes[idx]);
-		                	if (index > 1 && idx ) {
-		                		var value = $(this).find('p:last-child').text();
-		                		if (!$(this).find('p').length) {
-									value = $(this).text();
-		                		}
-		                		theseRatings[network_classes[idx]].push(value);
-		                	}
-	                	});
-	                });
+                $table.find('tr').filter(function(index){
+                	var $row = $(this);
+                	$row.find('td').each(function(idx){
+                		$(this).attr('data-network', network_classes[idx]);
+	                	if (index > 1 && idx ) {
+	                		var value = $(this).find('p:last-child').text();
+	                		if (!$(this).find('p').length) {
+								value = $(this).text();
+	                		}
+	                		theseRatings[network_classes[idx]].push(value);
+	                	}
+                	});
+                });
 
-					if (typeof ratings == 'undefined') ratings = {};
-	                ratings[req.params.date] = theseRatings;
+				if (typeof ratings == 'undefined') ratings = {};
+                ratings[req.params.date] = theseRatings;
 
-	                // console.log(urls[req.params.date]);
+                // console.log(urls[req.params.date]);
 
-			        fs.writeFile('ratings/'+moment.unix(req.params.date).format('YYYYMMDD')+'.json', JSON.stringify(theseRatings, null, 4), function(err) {
-			           	if (!err) {
-			           		//console.log('File successfully written! - Check your project directory for the output.json file');
-			           	} else {
-			           		console.log(err);
-			           	}
-			        });
+		        fs.writeFile('ratings/'+moment.unix(req.params.date).format('YYYYMMDD')+'.json', JSON.stringify(theseRatings, null, 4), function(err) {
+		           	if (!err) {
+		           		//console.log('File successfully written! - Check your project directory for the output.json file');
+		           	} else {
+		           		console.log(err);
+		           	}
+		        });
 
-	                res.send(theseRatings);
+                res.send(theseRatings);
 
-	            });
-	        }
-	    });
-	});
+            });
+        }
+    });
+});
 
 
-// Serve static files
-app.use(express.static('./app'));
 
 app.listen('8081')
 console.log('Magic happens on port 8081');
