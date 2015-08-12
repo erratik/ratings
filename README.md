@@ -3,8 +3,19 @@ tv ratings web scraper
 
 Simple web scraper to get information from http://www.mediaite.com/ rating pages
 
-Just putting a page number to start going through a page to find all the links to ratings pages, and writing them to JSON file with a {'UTCDATE': 'URL'} format.
+## Get links starting from page X
+(/links/{start})
+Fetching data from http://www.mediaite.com/tag/cable-news-ratings/page/x to current page
+Scraping links matching 'cable-rating' and storing them in urls.json in object with uTC date and url as key/value pair in an object
 
-Once I have all the pages I want, I can use that object to start scraping the data in the ratings table on each page! 
+This will check all the files stored and create an obect to run through and store data, and once the data is fetched, we save the files from the url's start date parameter, outlined next.
+
+### Fetch data from urls
+(/ratings/get/{YYYYMMDD}/{count})
+Scraping each url for the ratings table (25-64 demographic) and storing the ratings in an object with network/ratingValues as key/value pairs in each file.
+This url calls /ratings/{date} at an interval to store the data in the ratings folder into YYYYMMDD.json files.
+
+
+Next up: fetching ratings data
 
 You're welcome, Brian <3
