@@ -14,44 +14,84 @@ var bodyParser = require('body-parser');    // pull information from HTML POST (
 	app.use(morgan('dev'));
 
 
-var urls = {};
-var urlFile = 'urls.json';
-jsonfile.readFile(urlFile, function(err, obj) {
+var urls = {}, dates;   
+	var ratings = [];
+
+jsonfile.readFile('urls.json', function(err, obj) {
     urls = obj;
-});
-var ratings;
-var ratingsFile = 'ratings.json';
-jsonfile.readFile(ratingsFile, function(err, obj) {
-    ratings = obj;
+	dates = Object.keys(obj);
+
+	for (var i = 0; i < dates.length; i++) {
+		// urls
+		// console.log(dates[i]);
+		jsonfile.readFile('./ratings/'+moment.unix(dates[i]).format('YYYYMMDD')+'.json', function(err, obj) {
+			if (err) {
+				// console.log('no ratings files yet');
+			} else {
+				// console.log(obj);
+				var ratingsObj = {};
+				ratingsObj[dates[i]] = obj;
+			    ratings.push(ratingsObj);
+			}
+		});
+	}
+
 });
 
 app
-	.get('/ratings/get/:count', function(req, res) {
+	.get('/ratings/get/:start/:count', function(req, res) {
 
-		var dates = Object.keys(urls);
-		// console.log(typeof ratings);
-		var start = (typeof ratings != 'undefined') ? Object.keys(ratings).length  : 0;
-		var limit = (typeof ratings != 'undefined') ? (Object.keys(ratings).length+Number(req.params.count)) : req.params.count;
+		console.log(" ");
+		console.log('ratings count -> '+ratings.length);
+		if (ratings.length) var _ratings = Object.keys(ratings[0]);
 
-		console.log("start is  " + start);
-		console.log("limit is " + limit);
+		var start = (!ratings.length) ? 11 : moment(req.params.start, 'YYYYMMDD').format('X');
+		// console.log(start);
+		if (ratings.length) console.log(ratings[11]);
 
-		var newRatings = {};
+		var count = Number(req.params.count);
+		start = Number(start);
+		console.log(" ");
+		console.log(" - - -");
+		console.log('getting '+count+' from ' + start +' in ' + dates.length + ' dates');
+		console.log(" - - -");
+		console.log(" ");
 
-		for (var i = 0; i >= start && i < limit && i <= dates.length; i++) {
-			console.log('test');
+
+		// takes an array of utc dates, references the urls.json file link for it 
+		// by calling /ratings/:date, and returns the fetched ratings
+		var checkDate = function(date) {
+			console.log('date: '+date)
+			//console.log(date);
+
+		    request('http://localhost:8081/ratings/'+date+'/all', function(error, response, html) {
+		    	// console.log('test');
+		    	if (!error) {
+		    		// console.log(response);
+		    		console.log(response.body);
+		    	} else {
+		    		console.log(error);
+		    	}
+		    });
+		};
+		
+		//makes an array of dates
+		var range = dates.slice(start, start+count); 
+		var _timeout = 10;
+		if (range.length == count) {
+			// go through the range and run checkDate()
+			var i = 0;
+			checkDate(range[0]);
+			(function(range, i){
+
 				console.log(i);
-				var date = dates[i];
+				setInterval(function(){
+					// i++;
+					if (++i < count) checkDate(range[i]);
+					console.log(i);
+				}, 1000*_timeout);
+			})(range, i);
 
-			    request('http://localhost:8081/ratings/'+date+'/all', function(error, response, html) {
-			    	// console.log('test');
-			    	if (!error) {
-			    		// console.log(response);
-			    		if (i == req.params.count) console.log(response.body);
-			    	} else {
-			    		console.log(error);
-			    	}
-			    });
 		}
 
 	})
