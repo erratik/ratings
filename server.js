@@ -24,16 +24,21 @@ jsonfile.readFile('urls.json', function(err, obj) {
 	for (var i = 0; i < dates.length; i++) {
 		// urls
 		// console.log(dates[i]);
-		jsonfile.readFile('./ratings/'+moment.unix(dates[i]).format('YYYYMMDD')+'.json', function(err, obj) {
-			if (err) {
-				// console.log('no ratings files yet');
-			} else {
-				// console.log(obj);
-				var ratingsObj = {};
-				ratingsObj[dates[i]] = obj;
-			    ratings.push(ratingsObj);
-			}
-		});
+		var date = dates[i];
+		(function(date){
+
+			jsonfile.readFile('./ratings/'+moment.unix(date).format('YYYYMMDD')+'.json', function(err, obj) {
+				if (err) {
+					// console.log('no ratings files yet');
+				} else {
+					// console.log(date);
+					// console.log(obj);
+					var ratingsObj = {};
+					ratingsObj[date] = obj;
+				    ratings.push(ratingsObj);
+				}
+			});
+		})(date);
 	}
 
 });
@@ -43,11 +48,22 @@ app
 
 		console.log(" ");
 		console.log('ratings count -> '+ratings.length);
-		if (ratings.length) var _ratings = Object.keys(ratings[0]);
+		if (ratings.length) {
+		// find position in dates array
+			console.log(ratings);
+			// var _ratings = Object.keys(ratings[0]);
+			// console.log(_ratings[0]);
+			for(i = 0; i < dates.length; i++){
+			    if(moment.unix(dates[i]).format('YYYYMMDD') === req.params.start){
+					console.log(moment.unix(dates[i]).format('YYYYMMDD')+ ' -> ' +req.params.start);
+			        console.log('position in dates array is: '+ i);
+			        start = i+1;
+			    }
+			}
+		} else {
+			start = 11;
+		}
 
-		var start = (!ratings.length) ? 11 : moment(req.params.start, 'YYYYMMDD').format('X');
-		// console.log(start);
-		if (ratings.length) console.log(ratings[11]);
 
 		var count = Number(req.params.count);
 		start = Number(start);
@@ -61,7 +77,7 @@ app
 		// takes an array of utc dates, references the urls.json file link for it 
 		// by calling /ratings/:date, and returns the fetched ratings
 		var checkDate = function(date) {
-			console.log('date: '+date)
+			console.log('date: '+moment.unix(date).format('YYYYMMDD'))
 			//console.log(date);
 
 		    request('http://localhost:8081/ratings/'+date+'/all', function(error, response, html) {
@@ -77,7 +93,7 @@ app
 		
 		//makes an array of dates
 		var range = dates.slice(start, start+count); 
-		var _timeout = 10;
+		var _timeout = 5;
 		if (range.length == count) {
 			// go through the range and run checkDate()
 			var i = 0;
